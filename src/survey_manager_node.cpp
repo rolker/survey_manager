@@ -10,7 +10,7 @@ MutexProtectedBagWriter log_bag;
 void wptIndexCallback(const std_msgs::Int32::ConstPtr &message)
 {
     kongsberg_em_control::EMControl emc;
-    emc.request.line_number = 0;
+    emc.request.line_number = -1;
     emc.request.requested_mode = 2;
     ros::service::call("/sonar/control",emc);
 }
