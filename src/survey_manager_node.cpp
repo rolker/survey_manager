@@ -24,4 +24,7 @@ int main(int argc, char **argv)
     std::string iso_now = std::regex_replace(boost::posix_time::to_iso_extended_string(now),std::regex(":"),"-");
     std::string log_filename = "nodes/survey_manager-"+iso_now+".bag";
     log_bag.open(log_filename, rosbag::bagmode::Write);
+    
+    ros::Subscriber wptIndexSub = n.subscribe("/moos/wpt_index",10,&wptIndexCallback);
+    ros::spin();
 }
