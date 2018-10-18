@@ -1,9 +1,11 @@
 #include "ros/ros.h"
+#include "survey_manager/SonarCoverage.h"
 #include "kongsberg_em_control/EMControl.h"
 #include "project11/mutex_protected_bag_writer.h"
 #include "std_msgs/Int32.h"
 #include <regex>
 #include "boost/date_time/posix_time/posix_time.hpp"
+#include "nodelet/loader.h"
 
 MutexProtectedBagWriter log_bag;
 
@@ -26,5 +28,12 @@ int main(int argc, char **argv)
     log_bag.open(log_filename, rosbag::bagmode::Write);
     
     ros::Subscriber wptIndexSub = n.subscribe("/moos/wpt_index",10,&wptIndexCallback);
+    
+    nodelet::Loader nodelet;
+    nodelet::M_string remap(ros::names::getRemappings());
+    nodelet::V_string nargv;
+    std::string nodelet_name = ros::this_node::getName();
+    nodelet.load(nodelet_name, "survey_manager/SonarCoverage", remap, nargv);
+    
     ros::spin();
 }

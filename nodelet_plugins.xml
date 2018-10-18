@@ -1,0 +1,7 @@
+<library path="lib/libSonarCoverage_nodelet">
+  <class name="survey_manager/SonarCoverage" type="survey_manager::SonarCoverage" base_class_type="nodelet::Nodelet">
+  <description>
+  This nodelet keeps track of sonar coverage.
+  </description>
+  </class>
+</library>
