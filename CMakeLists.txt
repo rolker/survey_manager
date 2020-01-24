@@ -12,21 +12,6 @@ find_package(catkin REQUIRED COMPONENTS
   nodelet
 )
 
-find_library(GEOS_LIBRARY
-  NAMES geos
-  PATHS
-    ~/Library/Frameworks
-    /Library/Frameworks
-    /usr/local
-    /usr
-    /sw
-    /opt/local
-    /opt/csw
-    /opt
-    /usr/freeware    
-  PATH_SUFFIXES lib64 lib
-)
-
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES SonarCoverage
@@ -43,7 +28,7 @@ add_library(SonarCoverage_nodelet src/SonarCoverage.cpp)
 add_dependencies(SonarCoverage_nodelet marine_msgs_gencpp)
 
 target_link_libraries(SonarCoverage_nodelet
-   ${catkin_LIBRARIES} ${GEOS_LIBRARY}
+   ${catkin_LIBRARIES} 
 )
 
 add_executable(${PROJECT_NAME}_node src/survey_manager_node.cpp)

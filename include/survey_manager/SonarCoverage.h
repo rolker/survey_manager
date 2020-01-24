@@ -7,12 +7,18 @@
 #include <std_msgs/Bool.h>
 #include <marine_msgs/NavEulerStamped.h>
 #include <geographic_msgs/GeoPointStamped.h>
-#include <geos/geom/GeometryFactory.h>
-#include <geos/geom/MultiPolygon.h>
+
+#include <boost/geometry.hpp>
+#include <boost/geometry/geometries/point_xy.hpp>
+#include <boost/geometry/geometries/polygon.hpp>
 
 
 namespace survey_manager
 {
+    typedef boost::geometry::model::d2::point_xy<double> Point;
+    typedef boost::geometry::model::polygon<Point> Polygon;
+    typedef boost::geometry::model::multi_polygon<Polygon> MultiPolygon;
+    
     class SonarCoverage: public nodelet::Nodelet
     {
     public:
@@ -44,12 +50,11 @@ namespace survey_manager
         ros::Subscriber m_reset_sub;
         
         ros::Publisher m_coverage_pub;
-        ros::Publisher m_mbes_ping_pub;
+        //ros::Publisher m_mbes_ping_pub;
         
         std::vector<PingRecord> m_pings;
         
-        geos::geom::GeometryFactory const *m_geometry_factory;
-        std::vector<geos::geom::Polygon*> m_coverage;
+        MultiPolygon m_coverage;
         
         /// Interval in meters between pings used in coverage polygon. 
         double m_interval;

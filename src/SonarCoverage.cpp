@@ -2,11 +2,6 @@
 #include <pluginlib/class_list_macros.h>
 #include "project11/gz4d_geo.h"
 #include "geographic_msgs/GeoPath.h"
-#include <geos/geom/CoordinateArraySequence.h>
-#include <geos/operation/union/CascadedPolygonUnion.h>
-#include <geos/simplify/DouglasPeuckerSimplifier.h>
-#include <geos/geom/Polygon.h>
-#include <geos/geom/LineString.h>
 
 PLUGINLIB_EXPORT_CLASS(survey_manager::SonarCoverage, nodelet::Nodelet)
 
@@ -24,8 +19,6 @@ namespace survey_manager
     {
         NODELET_DEBUG("Initializing nodelet...");
         
-        m_geometry_factory = geos::geom::GeometryFactory::getDefaultInstance();
-        
         auto node = getNodeHandle();
         m_depth_sub = node.subscribe("/depth",10,&SonarCoverage::depthCallback, this);
         m_heading_sub = node.subscribe("/heading",10,&SonarCoverage::headingCallback, this);
@@ -33,7 +26,7 @@ namespace survey_manager
         m_reset_sub = node.subscribe("/sim_reset",10,&SonarCoverage::resetCallback, this);
         
         m_coverage_pub = node.advertise<geographic_msgs::GeoPath>("/coverage",10);
-        m_mbes_ping_pub = node.advertise<geographic_msgs::GeoPath>("/mbes_ping",10);
+        //m_mbes_ping_pub = node.advertise<geographic_msgs::GeoPath>("/mbes_ping",10);
     }
     
     void SonarCoverage::depthCallback(std_msgs::Float32::ConstPtr data)
@@ -65,7 +58,7 @@ namespace survey_manager
                 processInterval();
             
             // send ping as rectangle representing it's footprint.
-            geos::geom::CoordinateSequence * coordinates = new geos::geom::CoordinateArraySequence();
+            Polygon coordinates;
             gz4d::geo::Point<double,gz4d::geo::WGS84::LatLon> nadir;
             nadir[0] = pr.nadir_latitude;
             nadir[1] = pr.nadir_longitude;
@@ -73,58 +66,27 @@ namespace survey_manager
             double alongship_half_distance = data->data * m_half_alongship_beamwidth_tan;
             std::cerr << "alongship_half_distance: " << alongship_half_distance << std::endl;
             auto starboard_fwd_point = gz4d::geo::WGS84::Ellipsoid::direct(starboard_point,pr.heading,alongship_half_distance);
-            geos::geom::Coordinate coordinate;
-            coordinate.x = starboard_fwd_point[1];
-            coordinate.y = starboard_fwd_point[0];
-            std::cerr << "stbd fwd: " << coordinate.toString() << std::endl;
-            coordinates->add(coordinate);
+
+            boost::geometry::append(coordinates,Point(starboard_fwd_point[1],starboard_fwd_point[0]));
             auto port_fwd_point = gz4d::geo::WGS84::Ellipsoid::direct(starboard_fwd_point,pr.heading-90,pr.starboard_distance+pr.port_distance);
-            coordinate.x = port_fwd_point[1];
-            coordinate.y = port_fwd_point[0];
-            std::cerr << "port fwd: " << coordinate.toString() << std::endl;
-            coordinates->add(coordinate);
+            boost::geometry::append(coordinates,Point(port_fwd_point[1],port_fwd_point[0]));
+            
             auto port_back_point = gz4d::geo::WGS84::Ellipsoid::direct(port_fwd_point,pr.heading+180,2*alongship_half_distance);
-            coordinate.x = port_back_point[1];
-            coordinate.y = port_back_point[0];
-            std::cerr << "port back: " << coordinate.toString() << std::endl;
-            coordinates->add(coordinate);
+            
+            boost::geometry::append(coordinates,Point(port_back_point[1],port_back_point[0]));
+             
             auto starboard_back_point = gz4d::geo::WGS84::Ellipsoid::direct(port_back_point,pr.heading+90,pr.starboard_distance+pr.port_distance);
-            coordinate.x = starboard_back_point[1];
-            coordinate.y = starboard_back_point[0];
-            std::cerr << "stbd back: " << coordinate.toString() << std::endl;
-            coordinates->add(coordinate);
-            coordinates->add(coordinates->front());
-            auto new_poly = m_geometry_factory->createPolygon(m_geometry_factory->createLinearRing(coordinates),nullptr);
-            m_coverage.push_back(new_poly); 
-            auto union_op = new geos::operation::geounion::CascadedPolygonUnion(&m_coverage);
-            auto new_coverage = union_op->Union();
-            std::cerr << "new coverage type: " << new_coverage->getGeometryType() << std::endl;
+            
+            boost::geometry::append(coordinates,Point(starboard_back_point[1], starboard_back_point[0]));
 
-            geos::simplify::DouglasPeuckerSimplifier simplifier(new_coverage);
-            simplifier.setDistanceTolerance(0.0001);
-            auto new_simplified_coverage = simplifier.getResultGeometry();
+            boost::geometry::correct(coordinates);
+            
+            MultiPolygon merged;
+            boost::geometry::union_(coordinates,m_coverage,merged);
 
-            std::cerr << "new simplified coverage type: " << new_simplified_coverage->getGeometryType() << std::endl;
-
-            //std::cerr << new_coverage->toString() << std::endl;
-            geos::geom::Polygon *new_polygon = dynamic_cast<geos::geom::Polygon*>(new_simplified_coverage.get());
-            if (new_polygon)
-            {
-                m_coverage.clear();
-                m_coverage.push_back(new_polygon);
-                publishCoverage();
-            }
-            geos::geom::MultiPolygon *new_multiPolygon = dynamic_cast<geos::geom::MultiPolygon*>(new_simplified_coverage.get());
-            if (new_multiPolygon)
-            {
-                m_coverage.clear();
-                for(auto p: *new_multiPolygon)
-                {
-                    geos::geom::Polygon *polygon = dynamic_cast<geos::geom::Polygon*>(p);
-                    m_coverage.push_back(polygon);
-                }
-                publishCoverage();
-            }            
+            m_coverage = merged;
+            
+            publishCoverage();
         }
         else
             std::cerr << "SonarCoverage: depth: " << data->data << std::endl;
@@ -178,14 +140,11 @@ namespace survey_manager
         geographic_msgs::GeoPath gpath;
         for(auto p: m_coverage)
         {
-            auto er = p->getExteriorRing();
-            auto cs = er->getCoordinates();
-            auto csv = cs->toVector();
-            for(auto p: *csv)
+            for(auto point: p.outer())
             {
                 geographic_msgs::GeoPoseStamped gpose;
-                gpose.pose.position.latitude = p.y;
-                gpose.pose.position.longitude = p.x;
+                gpose.pose.position.latitude = point.y();
+                gpose.pose.position.longitude = point.x();
                 gpath.poses.push_back(gpose); 
             }
             geographic_msgs::GeoPoseStamped gpose;
