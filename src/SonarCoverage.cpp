@@ -34,7 +34,7 @@ namespace survey_manager
         ros::Time now = ros::Time::now();
         if(now-m_last_heading_time < ros::Duration(.5) && now-m_last_position_time < ros::Duration(.5))
         {
-            std::cerr << "SonarCoverage: depth: " << data->data << ", position: " << m_latitude << ", " << m_longitude << ", heading: " << m_heading << std::endl;
+            //std::cerr << "SonarCoverage: depth: " << data->data << ", position: " << m_latitude << ", " << m_longitude << ", heading: " << m_heading << std::endl;
             PingRecord pr;
             pr.heading = m_heading;
             pr.nadir_latitude = m_latitude;
@@ -51,7 +51,7 @@ namespace survey_manager
                 
                 auto azimuth_distance = gz4d::geo::WGS84::Ellipsoid::inverse(p1,p2);
                 m_interval_accumulated_distance += azimuth_distance.second;
-                std::cerr << "distance: " << m_interval_accumulated_distance << std::endl;
+                //std::cerr << "distance: " << m_interval_accumulated_distance << std::endl;
             }
             m_interval_record.push_back(pr);
             if(m_interval_accumulated_distance > m_interval)
@@ -64,7 +64,7 @@ namespace survey_manager
             nadir[1] = pr.nadir_longitude;
             auto starboard_point = gz4d::geo::WGS84::Ellipsoid::direct(nadir,pr.heading+90,pr.starboard_distance);
             double alongship_half_distance = data->data * m_half_alongship_beamwidth_tan;
-            std::cerr << "alongship_half_distance: " << alongship_half_distance << std::endl;
+            //std::cerr << "alongship_half_distance: " << alongship_half_distance << std::endl;
             auto starboard_fwd_point = gz4d::geo::WGS84::Ellipsoid::direct(starboard_point,pr.heading,alongship_half_distance);
 
             boost::geometry::append(coordinates,Point(starboard_fwd_point[1],starboard_fwd_point[0]));
@@ -88,8 +88,8 @@ namespace survey_manager
             
             publishCoverage();
         }
-        else
-            std::cerr << "SonarCoverage: depth: " << data->data << std::endl;
+        //else
+        //    std::cerr << "SonarCoverage: depth: " << data->data << std::endl;
     }
     
     void SonarCoverage::headingCallback(marine_msgs::NavEulerStamped::ConstPtr data)
