@@ -1,12 +1,15 @@
 #include "survey_manager/SonarCoverage.h"
 #include <pluginlib/class_list_macros.h>
-#include "project11/gz4d_geo.h"
+#include "project11/utils.h"
 #include "geographic_msgs/GeoPath.h"
 
 PLUGINLIB_EXPORT_CLASS(survey_manager::SonarCoverage, nodelet::Nodelet)
 
+
 namespace survey_manager
 {
+  namespace p11 = project11;
+
     SonarCoverage::SonarCoverage():m_interval(5.0),m_alongship_beamwidth(5.0),m_port_angle(75.0),m_starboard_angle(75.0),m_interval_accumulated_distance(0.0)
     {
         m_half_alongship_beamwidth_tan = tan(m_alongship_beamwidth*M_PI/360.0);
@@ -43,15 +46,15 @@ namespace survey_manager
             pr.starboard_distance = data->data*m_starboard_tan;
             if(!m_interval_record.empty())
             {
-                gz4d::geo::Point<double,gz4d::geo::WGS84::LatLon> p1, p2;
-                p1[0] = m_interval_record.back().nadir_latitude;
-                p1[1] = m_interval_record.back().nadir_longitude;
-                p2[0] = pr.nadir_latitude;
-                p2[1] = pr.nadir_longitude;
-                
-                auto azimuth_distance = gz4d::geo::WGS84::Ellipsoid::inverse(p1,p2);
-                m_interval_accumulated_distance += azimuth_distance.second;
-                //std::cerr << "distance: " << m_interval_accumulated_distance << std::endl;
+              p11::LatLongDegrees p1, p2;
+              p1[0] = m_interval_record.back().nadir_latitude;
+              p1[1] = m_interval_record.back().nadir_longitude;
+              p2[0] = pr.nadir_latitude;
+              p2[1] = pr.nadir_longitude;
+              
+              auto azimuth_distance = gz4d::geo::WGS84::Ellipsoid::inverse(p1,p2);
+              m_interval_accumulated_distance += azimuth_distance.second;
+              //std::cerr << "distance: " << m_interval_accumulated_distance << std::endl;
             }
             m_interval_record.push_back(pr);
             if(m_interval_accumulated_distance > m_interval)
@@ -59,23 +62,23 @@ namespace survey_manager
             
             // send ping as rectangle representing it's footprint.
             Polygon coordinates;
-            gz4d::geo::Point<double,gz4d::geo::WGS84::LatLon> nadir;
+            p11::LatLongDegrees nadir;
             nadir[0] = pr.nadir_latitude;
             nadir[1] = pr.nadir_longitude;
-            auto starboard_point = gz4d::geo::WGS84::Ellipsoid::direct(nadir,pr.heading+90,pr.starboard_distance);
+            auto starboard_point = p11::WGS84::direct(nadir,p11::AngleDegrees(pr.heading+90),pr.starboard_distance);
             double alongship_half_distance = data->data * m_half_alongship_beamwidth_tan;
             //std::cerr << "alongship_half_distance: " << alongship_half_distance << std::endl;
-            auto starboard_fwd_point = gz4d::geo::WGS84::Ellipsoid::direct(starboard_point,pr.heading,alongship_half_distance);
+            auto starboard_fwd_point = p11::WGS84::direct(starboard_point,p11::AngleDegrees(pr.heading),alongship_half_distance);
 
             boost::geometry::append(coordinates,Point(starboard_fwd_point[1],starboard_fwd_point[0]));
-            auto port_fwd_point = gz4d::geo::WGS84::Ellipsoid::direct(starboard_fwd_point,pr.heading-90,pr.starboard_distance+pr.port_distance);
+            auto port_fwd_point = p11::WGS84::direct(starboard_fwd_point, p11::AngleDegrees(pr.heading-90),pr.starboard_distance+pr.port_distance);
             boost::geometry::append(coordinates,Point(port_fwd_point[1],port_fwd_point[0]));
             
-            auto port_back_point = gz4d::geo::WGS84::Ellipsoid::direct(port_fwd_point,pr.heading+180,2*alongship_half_distance);
+            auto port_back_point = p11::WGS84::direct(port_fwd_point,p11::AngleDegrees(pr.heading+180),2*alongship_half_distance);
             
             boost::geometry::append(coordinates,Point(port_back_point[1],port_back_point[0]));
              
-            auto starboard_back_point = gz4d::geo::WGS84::Ellipsoid::direct(port_back_point,pr.heading+90,pr.starboard_distance+pr.port_distance);
+            auto starboard_back_point = p11::WGS84::direct(port_back_point,p11::AngleDegrees(pr.heading+90),pr.starboard_distance+pr.port_distance);
             
             boost::geometry::append(coordinates,Point(starboard_back_point[1], starboard_back_point[0]));
 
@@ -158,18 +161,18 @@ namespace survey_manager
         if(!m_pings.empty())
         {
             geographic_msgs::GeoPath gpath;
-            std::vector<gz4d::geo::Point<double,gz4d::geo::WGS84::LatLon> > port_positions;
+            std::vector<p11::LatLongDegrees> port_positions;
             for(PingRecord p: m_pings)
             {
-                gz4d::geo::Point<double,gz4d::geo::WGS84::LatLon> nadir;
+                p11::LatLongDegrees nadir;
                 nadir[0] = p.nadir_latitude;
                 nadir[1] = p.nadir_longitude;
-                auto starboard_point = gz4d::geo::WGS84::Ellipsoid::direct(nadir,p.heading+90,p.starboard_distance);
+                auto starboard_point = p11::WGS84::direct(nadir, p11::AngleDegrees(p.heading+90), p.starboard_distance);
                 geographic_msgs::GeoPoseStamped gpose;
                 gpose.pose.position.latitude = starboard_point[0];
                 gpose.pose.position.longitude = starboard_point[1];
                 gpath.poses.push_back(gpose);
-                port_positions.push_back(gz4d::geo::WGS84::Ellipsoid::direct(nadir,p.heading-90,p.port_distance));
+                port_positions.push_back(p11::WGS84::direct(nadir,p11::AngleDegrees(p.heading-90), p.port_distance));
             }
             for(auto p = port_positions.rbegin(); p!=port_positions.rend();p++)
             {
