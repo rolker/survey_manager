@@ -4,7 +4,6 @@ project(survey_manager)
 add_compile_options(-std=c++11)
 
 find_package(catkin REQUIRED COMPONENTS
-  kongsberg_em_control
   std_msgs
   marine_msgs
   project11
