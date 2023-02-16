@@ -5,7 +5,7 @@
 #include <nodelet/nodelet.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Bool.h>
-#include <marine_msgs/NavEulerStamped.h>
+#include <project11_msgs/NavEulerStamped.h>
 #include <geographic_msgs/GeoPointStamped.h>
 
 #include <boost/geometry.hpp>
@@ -37,7 +37,7 @@ namespace survey_manager
         
     private:
         void depthCallback(std_msgs::Float32::ConstPtr data);
-        void headingCallback(marine_msgs::NavEulerStamped::ConstPtr data);
+        void headingCallback(project11_msgs::NavEulerStamped::ConstPtr data);
         void positionCallback(geographic_msgs::GeoPointStamped::ConstPtr data);
         void resetCallback(std_msgs::Bool::ConstPtr data);
         

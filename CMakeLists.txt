@@ -5,7 +5,7 @@ add_compile_options(-std=c++11)
 
 find_package(catkin REQUIRED COMPONENTS
   std_msgs
-  marine_msgs
+  project11_msgs
   project11
   roscpp
   nodelet
@@ -14,7 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES SonarCoverage
-  CATKIN_DEPENDS std_msgs sensor_msgs project11 roscpp nodelet marine_msgs
+  CATKIN_DEPENDS std_msgs sensor_msgs project11 roscpp nodelet project11_msgs
 #  DEPENDS system_lib
 )
 
@@ -24,14 +24,14 @@ include_directories(
 )
 
 add_library(SonarCoverage_nodelet src/SonarCoverage.cpp)
-add_dependencies(SonarCoverage_nodelet marine_msgs_gencpp)
+add_dependencies(SonarCoverage_nodelet project11_msgs_gencpp)
 
 target_link_libraries(SonarCoverage_nodelet
    ${catkin_LIBRARIES} 
 )
 
 add_executable(${PROJECT_NAME}_node src/survey_manager_node.cpp)
-add_dependencies(${PROJECT_NAME}_node marine_msgs_gencpp)
+add_dependencies(${PROJECT_NAME}_node project11_msgs_gencpp)
 
 target_link_libraries(${PROJECT_NAME}_node
    ${catkin_LIBRARIES}

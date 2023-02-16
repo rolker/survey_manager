@@ -11,7 +11,7 @@
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>std_msgs</build_depend>
   <build_depend>sensor_msgs</build_depend>
-  <build_depend>marine_msgs</build_depend>
+  <build_depend>project11_msgs</build_depend>
   <build_depend>project11</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>nodelet</build_depend>
@@ -19,7 +19,7 @@
   <build_export_depend>roscpp</build_export_depend>
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
-  <exec_depend>marine_msgs</exec_depend>
+  <exec_depend>project11_msgs</exec_depend>
   <exec_depend>project11</exec_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>nodelet</exec_depend>

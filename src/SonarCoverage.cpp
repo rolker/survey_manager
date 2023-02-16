@@ -95,7 +95,7 @@ namespace survey_manager
         //    std::cerr << "SonarCoverage: depth: " << data->data << std::endl;
     }
     
-    void SonarCoverage::headingCallback(marine_msgs::NavEulerStamped::ConstPtr data)
+    void SonarCoverage::headingCallback(project11_msgs::NavEulerStamped::ConstPtr data)
     {
         m_heading = data->orientation.heading;
         m_last_heading_time = data->header.stamp;
